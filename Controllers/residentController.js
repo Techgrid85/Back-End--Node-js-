@@ -7,6 +7,7 @@ const Event = require("../Models/eventModel.js");
 const Booking = require("../Models/bookingModel.js");
 const Poll = require("../Models/pollModel.js");
 const PollVote = require("../Models/pollVoteModel.js");
+const cloudinary = require("../config/cloudinary.js");
 
 const getResidentDashboard = async (req, res) => {
   try {
@@ -277,6 +278,92 @@ const updateResidentProfile = async (req, res) => {
     });
   }
 };
+
+const updateResidentProfilePicture = async (req, res) => {
+  try {
+    const resident = await Auth.findById(req.user.id);
+
+    if (!resident) {
+      return res.status(404).json({
+        success: false,
+        message: "Resident not found",
+      });
+    }
+
+    // ==========================================
+    // CHECK FILE
+    // ==========================================
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please select a profile picture",
+      });
+    }
+
+    // ==========================================
+    // UPLOAD TO CLOUDINARY
+    // ==========================================
+
+    const uploadResult = await new Promise(
+      (resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: "smart-society/profile-pictures",
+            resource_type: "image",
+          },
+          (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
+
+        stream.end(req.file.buffer);
+      }
+    );
+
+    // ==========================================
+    // SAVE IMAGE URL
+    // ==========================================
+
+    resident.profilePic = uploadResult.secure_url;
+
+    await resident.save();
+
+    // ==========================================
+    // RESPONSE
+    // ==========================================
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile picture updated successfully",
+
+      data: {
+        _id: resident._id,
+        name: resident.name,
+        email: resident.email,
+        phone: resident.phone,
+        flatNo: resident.flatNo,
+        profilePic: resident.profilePic,
+      },
+    });
+
+  } catch (error) {
+    console.error(
+      "Update Resident Profile Picture Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update profile picture",
+    });
+  }
+};
+
 
 const createComplaint = async (req, res) => {
   try {
@@ -991,6 +1078,7 @@ module.exports = {
 
   getResidentProfile,
   updateResidentProfile,
+  updateResidentProfilePicture,
 
   createComplaint,
   getMyComplaints,
