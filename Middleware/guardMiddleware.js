@@ -135,9 +135,21 @@ const validateVisitorId = (req, res, next) => {
 
   next();
 };
+const validateGateKey = (req, res, next) => {
+  const { gateKey } = req.params;
 
+  if (!gateKey || !/^\d{6}$/.test(gateKey.trim())) {
+    return res.status(400).json({
+      success: false,
+      message: "Gate key must be exactly 6 digits",
+    });
+  }
+
+  next();
+};
 module.exports = {
   validateWalkInVisitor,
   validateVisitorSearch,
   validateVisitorId,
+  validateGateKey,
 };
