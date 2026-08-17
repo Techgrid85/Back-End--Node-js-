@@ -106,7 +106,10 @@ guardroutes.put(
   "/profile",
   guardController.updateGuardProfile
 );
-
+guardroutes.get(
+  "/delivery-alerts",
+  guardController.getDeliveryAlerts
+);
 
 
 module.exports = guardroutes;
