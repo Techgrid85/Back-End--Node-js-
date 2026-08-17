@@ -155,7 +155,14 @@ const getResidentProfile = async (req, res) => {
 
 const updateResidentProfile = async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const {
+      name,
+      phone,
+      vehicleRegistration,
+      emergencyContact,
+      familyDetails,
+      tenantDetails,
+    } = req.body;
 
     const resident = await Auth.findById(req.user.id);
 
@@ -166,10 +173,59 @@ const updateResidentProfile = async (req, res) => {
       });
     }
 
-    resident.name = name;
-    resident.phone = phone;
+    // ==========================================
+    // PERSONAL INFORMATION
+    // ==========================================
+
+    if (name !== undefined) {
+      resident.name = name.trim();
+    }
+
+    if (phone !== undefined) {
+      resident.phone = phone.trim();
+    }
+
+    // ==========================================
+    // OTHER INFORMATION
+    // ==========================================
+
+    if (vehicleRegistration !== undefined) {
+      resident.vehicleRegistration =
+        vehicleRegistration.trim();
+    }
+
+    if (familyDetails !== undefined) {
+      resident.familyDetails =
+        familyDetails.trim();
+    }
+
+    if (tenantDetails !== undefined) {
+      resident.tenantDetails =
+        tenantDetails.trim();
+    }
+
+    // ==========================================
+    // EMERGENCY CONTACT
+    // ==========================================
+
+    if (emergencyContact !== undefined) {
+      resident.emergencyContact = {
+        name:
+          emergencyContact.name?.trim() || "",
+
+        relationship:
+          emergencyContact.relationship?.trim() || "",
+
+        phone:
+          emergencyContact.phone?.trim() || "",
+      };
+    }
 
     await resident.save();
+
+    // ==========================================
+    // RESPONSE
+    // ==========================================
 
     return res.status(200).json({
       success: true,
@@ -183,11 +239,37 @@ const updateResidentProfile = async (req, res) => {
         flatNo: resident.flatNo,
         role: resident.role,
         profilePic: resident.profilePic,
+
+        vehicleRegistration:
+          resident.vehicleRegistration,
+
+        emergencyContact:
+          resident.emergencyContact,
+
+        familyDetails:
+          resident.familyDetails,
+
+        tenantDetails:
+          resident.tenantDetails,
       },
     });
 
   } catch (error) {
-    console.error("Update Resident Profile Error:", error);
+    console.error(
+      "Update Resident Profile Error:",
+      error
+    );
+
+    if (error.name === "ValidationError") {
+      const message = Object.values(error.errors)
+        .map((item) => item.message)
+        .join(", ");
+
+      return res.status(400).json({
+        success: false,
+        message,
+      });
+    }
 
     return res.status(500).json({
       success: false,
@@ -195,7 +277,6 @@ const updateResidentProfile = async (req, res) => {
     });
   }
 };
-
 
 const createComplaint = async (req, res) => {
   try {
