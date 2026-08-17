@@ -12,7 +12,6 @@ dotenv.config();
 const app = express();
 
 
-connectDB();
 
 
 app.use(cors());
@@ -28,6 +27,5 @@ app.get("/", (req, res) => {
   res.send("SmartSociety Backend is Running");
 });
 
-app.listen(3000, () => {
-  console.log("Server is running on port 3000");
-});
+connectDB();
+module.exports = app;
