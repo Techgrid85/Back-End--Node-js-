@@ -152,17 +152,15 @@ const getResidentProfile = async (req, res) => {
 };
 
 
-
-
 const updateResidentProfile = async (req, res) => {
   try {
     const {
       name,
       phone,
       vehicleRegistration,
-      emergencyContact,
+      emergencyContactName,
+      emergencyContactRelationship,
       familyDetails,
-      tenantDetails,
     } = req.body;
 
     const resident = await Auth.findById(req.user.id);
@@ -178,55 +176,26 @@ const updateResidentProfile = async (req, res) => {
     // PERSONAL INFORMATION
     // ==========================================
 
-    if (name !== undefined) {
-      resident.name = name.trim();
-    }
-
-    if (phone !== undefined) {
-      resident.phone = phone.trim();
-    }
+    resident.name = name;
+    resident.phone = phone;
 
     // ==========================================
     // OTHER INFORMATION
     // ==========================================
 
-    if (vehicleRegistration !== undefined) {
-      resident.vehicleRegistration =
-        vehicleRegistration.trim();
-    }
+    resident.vehicleRegistration =
+      vehicleRegistration || "";
 
-    if (familyDetails !== undefined) {
-      resident.familyDetails =
-        familyDetails.trim();
-    }
+    resident.emergencyContact = {
+      name: emergencyContactName || "",
+      relationship:
+        emergencyContactRelationship || "",
+    };
 
-    if (tenantDetails !== undefined) {
-      resident.tenantDetails =
-        tenantDetails.trim();
-    }
-
-    // ==========================================
-    // EMERGENCY CONTACT
-    // ==========================================
-
-    if (emergencyContact !== undefined) {
-      resident.emergencyContact = {
-        name:
-          emergencyContact.name?.trim() || "",
-
-        relationship:
-          emergencyContact.relationship?.trim() || "",
-
-        phone:
-          emergencyContact.phone?.trim() || "",
-      };
-    }
+    resident.familyDetails =
+      familyDetails || "";
 
     await resident.save();
-
-    // ==========================================
-    // RESPONSE
-    // ==========================================
 
     return res.status(200).json({
       success: true,
@@ -249,9 +218,6 @@ const updateResidentProfile = async (req, res) => {
 
         familyDetails:
           resident.familyDetails,
-
-        tenantDetails:
-          resident.tenantDetails,
       },
     });
 
@@ -261,17 +227,6 @@ const updateResidentProfile = async (req, res) => {
       error
     );
 
-    if (error.name === "ValidationError") {
-      const message = Object.values(error.errors)
-        .map((item) => item.message)
-        .join(", ");
-
-      return res.status(400).json({
-        success: false,
-        message,
-      });
-    }
-
     return res.status(500).json({
       success: false,
       message: "Failed to update profile",
@@ -279,8 +234,16 @@ const updateResidentProfile = async (req, res) => {
   }
 };
 
+
 const updateResidentProfilePicture = async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please select a profile picture",
+      });
+    }
+
     const resident = await Auth.findById(req.user.id);
 
     if (!resident) {
@@ -291,79 +254,61 @@ const updateResidentProfilePicture = async (req, res) => {
     }
 
     // ==========================================
-    // CHECK FILE
-    // ==========================================
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "Please select a profile picture",
-      });
-    }
-
-    // ==========================================
     // UPLOAD TO CLOUDINARY
     // ==========================================
 
     const uploadResult = await new Promise(
       (resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          {
-            folder: "smart-society/profile-pictures",
-            resource_type: "image",
-          },
-          (error, result) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve(result);
+        const stream =
+          cloudinary.uploader.upload_stream(
+            {
+              folder: "smartsociety/profile-pictures",
+              resource_type: "image",
+            },
+            (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(result);
+              }
             }
-          }
-        );
+          );
 
         stream.end(req.file.buffer);
       }
     );
 
     // ==========================================
-    // SAVE IMAGE URL
+    // SAVE CLOUDINARY URL
     // ==========================================
 
-    resident.profilePic = uploadResult.secure_url;
+    resident.profilePic =
+      uploadResult.secure_url;
 
     await resident.save();
-
-    // ==========================================
-    // RESPONSE
-    // ==========================================
 
     return res.status(200).json({
       success: true,
       message: "Profile picture updated successfully",
 
       data: {
-        _id: resident._id,
-        name: resident.name,
-        email: resident.email,
-        phone: resident.phone,
-        flatNo: resident.flatNo,
         profilePic: resident.profilePic,
       },
     });
 
   } catch (error) {
     console.error(
-      "Update Resident Profile Picture Error:",
+      "Update Profile Picture Error:",
       error
     );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to update profile picture",
+      message:
+        "Failed to update profile picture",
     });
   }
 };
-
 
 const createComplaint = async (req, res) => {
   try {
