@@ -115,7 +115,29 @@ const getResidentProfile = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: resident,
+
+      data: {
+        _id: resident._id,
+        name: resident.name,
+        email: resident.email,
+        phone: resident.phone,
+        flatNo: resident.flatNo,
+        profilePic: resident.profilePic,
+
+        // OTHER INFORMATION
+        vehicleRegistration:
+          resident.vehicleRegistration || "",
+
+        emergencyContact: {
+          name: resident.emergencyContact?.name || "",
+          phone: resident.emergencyContact?.phone || "",
+          relationship:
+            resident.emergencyContact?.relationship || "",
+        },
+
+        familyDetails:
+          resident.familyDetails || "",
+      },
     });
 
   } catch (error) {
