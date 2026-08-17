@@ -273,6 +273,8 @@ const createVisitor = async (req, res) => {
       visitorName,
       email,
       phone,
+      visitorType,
+      vehicleNumber,
       purpose,
       visitDate,
       visitStartTime,
@@ -282,6 +284,7 @@ const createVisitor = async (req, res) => {
     // ==========================================
     // GET LOGGED-IN RESIDENT
     // ==========================================
+
     const resident = await Auth.findById(req.user.id);
 
     if (!resident) {
@@ -292,8 +295,27 @@ const createVisitor = async (req, res) => {
     }
 
     // ==========================================
+    // GENERATE UNIQUE 6-DIGIT GATE KEY
+    // ==========================================
+
+    let gateKey;
+    let existingVisitor;
+
+    do {
+      gateKey = Math.floor(
+        100000 + Math.random() * 900000
+      ).toString();
+
+      existingVisitor = await Visitor.findOne({
+        gateKey,
+      });
+
+    } while (existingVisitor);
+
+    // ==========================================
     // CREATE VISITOR PASS
     // ==========================================
+
     const visitor = await Visitor.create({
       resident: resident._id,
       flatNo: resident.flatNo,
@@ -301,7 +323,16 @@ const createVisitor = async (req, res) => {
       visitorName: visitorName.trim(),
       email: email.trim().toLowerCase(),
       phone: phone.trim(),
+
+      visitorType: visitorType || "Guest",
+
+      vehicleNumber: vehicleNumber
+        ? vehicleNumber.trim().toUpperCase()
+        : "",
+
       purpose: purpose.trim(),
+
+      gateKey,
 
       visitDate: new Date(visitDate),
       visitStartTime: new Date(visitStartTime),
@@ -315,7 +346,8 @@ const createVisitor = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Visitor pass created successfully and sent for approval",
+      message:
+        "Visitor pass created successfully and sent for approval",
       data: visitor,
     });
 
@@ -339,7 +371,6 @@ const createVisitor = async (req, res) => {
     });
   }
 };
-
 const getMyVisitors = async (req, res) => {
   try {
     const visitors = await Visitor.find({
