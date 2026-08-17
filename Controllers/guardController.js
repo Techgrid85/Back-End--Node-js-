@@ -278,6 +278,7 @@ const markVisitorEntry = async (req, res) => {
     visitor.gateStatus = "Inside";
     visitor.entryTime = new Date();
     visitor.entryGuard = req.user.id;
+    visitor.isOverstay = false;
 
     await visitor.save();
 
@@ -411,22 +412,43 @@ const getExitLogs = async (req, res) => {
 };
 const getOverstayAlerts = async (req, res) => {
   try {
-    const hoursAgo = new Date(
-      Date.now() - 4 * 60 * 60 * 1000
-    );
+    const now = new Date();
 
     const visitors = await Visitor.find({
       gateStatus: "Inside",
-      entryTime: { $lte: hoursAgo },
+      visitEndTime: { $lt: now },
     })
-      .populate("resident", "name flatNo")
+      .populate("resident", "name flatNo phone")
       .populate("entryGuard", "name")
-      .sort({ entryTime: 1 });
+      .sort({ visitEndTime: 1 });
+
+    // ==========================================
+    // UPDATE OVERSTAY INFORMATION
+    // ==========================================
+
+    const updatedVisitors = [];
+
+    for (const visitor of visitors) {
+      const overstayMilliseconds =
+        now - new Date(visitor.visitEndTime);
+
+      const overstayMinutes = Math.max(
+        0,
+        Math.floor(overstayMilliseconds / (1000 * 60))
+      );
+
+      visitor.isOverstay = true;
+      visitor.overstayMinutes = overstayMinutes;
+
+      await visitor.save();
+
+      updatedVisitors.push(visitor);
+    }
 
     return res.status(200).json({
       success: true,
-      count: visitors.length,
-      data: visitors,
+      count: updatedVisitors.length,
+      data: updatedVisitors,
     });
   } catch (error) {
     console.error("Overstay Alerts Error:", error);
@@ -657,7 +679,52 @@ const updateGuardProfile = async (req, res) => {
     });
   }
 };
+const getDeliveryAlerts = async (req, res) => {
+  try {
+    const now = new Date();
 
+    const visitors = await Visitor.find({
+      visitorType: "Delivery",
+      gateStatus: "Inside",
+      visitEndTime: { $lt: now },
+    })
+      .populate("resident", "name flatNo phone")
+      .populate("entryGuard", "name")
+      .sort({ visitEndTime: 1 });
+
+    const updatedVisitors = [];
+
+    for (const visitor of visitors) {
+      const overstayMilliseconds =
+        now - new Date(visitor.visitEndTime);
+
+      const overstayMinutes = Math.max(
+        0,
+        Math.floor(overstayMilliseconds / (1000 * 60))
+      );
+
+      visitor.isOverstay = true;
+      visitor.overstayMinutes = overstayMinutes;
+
+      await visitor.save();
+
+      updatedVisitors.push(visitor);
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: updatedVisitors.length,
+      data: updatedVisitors,
+    });
+  } catch (error) {
+    console.error("Delivery Alerts Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load delivery alerts",
+    });
+  }
+};
 
 
 module.exports = {
@@ -677,4 +744,5 @@ module.exports = {
   getPendingVisitorPasses,
   getGuardProfile,
   updateGuardProfile,
+  getDeliveryAlerts,
 };
