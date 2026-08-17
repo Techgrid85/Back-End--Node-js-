@@ -23,8 +23,8 @@ guardroutes.get(
 );
 
 guardroutes.get(
-  "/verify-pass/:visitorId",
-  guardMiddleware.validateVisitorId,
+  "/verify-pass/:gateKey",
+  guardMiddleware.validateGateKey,
   guardController.verifyGatePass
 );
 
