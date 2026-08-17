@@ -32,6 +32,13 @@ residentroutes.put(
   residentController.updateResidentProfile
 );
 
+residentroutes.put(
+  "/profile-picture",
+  residentMiddleware.uploadProfilePicture.single(
+    "profilePic"
+  ),
+  residentController.updateResidentProfilePicture
+);
 
 
 residentroutes.post(
