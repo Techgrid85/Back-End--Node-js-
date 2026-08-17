@@ -269,24 +269,6 @@ const getComplaintById = async (req, res) => {
 
 const createVisitor = async (req, res) => {
   try {
-    const resident = await Auth.findById(req.user.id);
-
-    if (!resident) {
-      return res.status(404).json({
-        success: false,
-        message: "Resident not found",
-      });
-    }
-
-    
-    if (!resident.flatNo || !resident.flatNo.trim()) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Your flat number is not assigned. Please contact the administrator.",
-      });
-    }
-
     const {
       visitorName,
       email,
@@ -297,88 +279,43 @@ const createVisitor = async (req, res) => {
       visitEndTime,
     } = req.body;
 
-    
-    if (
-      !visitorName ||
-      !email ||
-      !phone ||
-      !purpose ||
-      !visitDate ||
-      !visitStartTime ||
-      !visitEndTime
-    ) {
-      return res.status(400).json({
+    // ==========================================
+    // GET LOGGED-IN RESIDENT
+    // ==========================================
+    const resident = await Auth.findById(req.user.id);
+
+    if (!resident) {
+      return res.status(404).json({
         success: false,
-        message:
-          "Visitor name, email, phone, purpose, visit date, start time and end time are required",
+        message: "Resident not found",
       });
     }
 
-    
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(normalizedEmail)) {
-      return res.status(400).json({
-        success: false,
-        message: "Please enter a valid visitor email address",
-      });
-    }
-
-    
-    
-
-    const parsedVisitDate = new Date(visitDate);
-    const parsedStartTime = new Date(visitStartTime);
-    const parsedEndTime = new Date(visitEndTime);
-
-    
-    if (
-      Number.isNaN(parsedVisitDate.getTime()) ||
-      Number.isNaN(parsedStartTime.getTime()) ||
-      Number.isNaN(parsedEndTime.getTime())
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid visit date or time",
-      });
-    }
-
-   
-    
-    if (parsedEndTime <= parsedStartTime) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Visit end time must be later than visit start time",
-      });
-    }
-
-    
-    
-
+    // ==========================================
+    // CREATE VISITOR PASS
+    // ==========================================
     const visitor = await Visitor.create({
       resident: resident._id,
-      flatNo: resident.flatNo.trim(),
+      flatNo: resident.flatNo,
 
       visitorName: visitorName.trim(),
-      email: normalizedEmail,
+      email: email.trim().toLowerCase(),
       phone: phone.trim(),
       purpose: purpose.trim(),
 
-      visitDate: parsedVisitDate,
-      visitStartTime: parsedStartTime,
-      visitEndTime: parsedEndTime,
+      visitDate: new Date(visitDate),
+      visitStartTime: new Date(visitStartTime),
+      visitEndTime: new Date(visitEndTime),
 
       status: "Pending",
       gateStatus: "Not Entered",
+
       isWalkIn: false,
     });
 
     return res.status(201).json({
       success: true,
-      message: "Visitor pass created successfully",
+      message: "Visitor pass created successfully and sent for approval",
       data: visitor,
     });
 
@@ -386,23 +323,22 @@ const createVisitor = async (req, res) => {
     console.error("Create Visitor Error:", error);
 
     if (error.name === "ValidationError") {
-      const message = Object.values(error.errors)
-        .map((item) => item.message)
-        .join(", ");
+      const firstField = Object.keys(error.errors)[0];
 
       return res.status(400).json({
         success: false,
-        message,
+        field: firstField,
+        message: error.errors[firstField].message,
       });
     }
 
     return res.status(500).json({
       success: false,
-      message: "Failed to create visitor pass",
+      message:
+        error.message || "Failed to create visitor pass",
     });
   }
 };
-
 
 const getMyVisitors = async (req, res) => {
   try {
