@@ -49,6 +49,30 @@ const authSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    vehicleRegistration: {
+  type: String,
+  trim: true,
+  default: "",
+},
+
+emergencyContact: {
+  name: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  relationship: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+},
+
+familyDetails: {
+  type: String,
+  trim: true,
+  default: "",
+},
 
     isActive: {
       type: Boolean,
