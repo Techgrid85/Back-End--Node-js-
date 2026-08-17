@@ -2,15 +2,23 @@ const Visitor = require("../Models/visitorModel.js");
 const Auth = require("../Models/authModel.js");
 const verifyGatePass = async (req, res) => {
   try {
-    const { visitorId } = req.params;
+    const { gateKey } = req.params;
 
-    const visitor = await Visitor.findById(visitorId)
-      .populate("resident", "name flatNo");
+    if (!gateKey || !/^\d{6}$/.test(gateKey.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid gate key",
+      });
+    }
+
+    const visitor = await Visitor.findOne({
+      gateKey: gateKey.trim(),
+    }).populate("resident", "name flatNo phone email");
 
     if (!visitor) {
       return res.status(404).json({
         success: false,
-        message: "Visitor pass not found",
+        message: "Visitor pass not found or QR code is invalid",
       });
     }
 
@@ -18,6 +26,7 @@ const verifyGatePass = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Visitor pass has not been approved yet",
+        data: visitor,
       });
     }
 
@@ -25,6 +34,7 @@ const verifyGatePass = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Visitor is already inside",
+        data: visitor,
       });
     }
 
@@ -32,6 +42,7 @@ const verifyGatePass = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Visitor has already completed the visit",
+        data: visitor,
       });
     }
 
@@ -40,6 +51,7 @@ const verifyGatePass = async (req, res) => {
       message: "Visitor pass verified successfully",
       data: visitor,
     });
+
   } catch (error) {
     console.error("Verify Gate Pass Error:", error);
 
