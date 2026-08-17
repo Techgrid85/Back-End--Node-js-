@@ -49,30 +49,52 @@ const authSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    // ==========================================
+    // OTHER RESIDENT INFORMATION
+    // ==========================================
+
     vehicleRegistration: {
-  type: String,
-  trim: true,
-  default: "",
-},
+      type: String,
+      trim: true,
+      default: "",
+    },
 
-emergencyContact: {
-  name: {
-    type: String,
-    trim: true,
-    default: "",
-  },
-  relationship: {
-    type: String,
-    trim: true,
-    default: "",
-  },
-},
+    emergencyContact: {
+      name: {
+        type: String,
+        trim: true,
+        default: "",
+      },
 
-familyDetails: {
-  type: String,
-  trim: true,
-  default: "",
-},
+      relationship: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+
+      phone: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+    },
+
+    familyDetails: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    tenantDetails: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    // ==========================================
+    // ACCOUNT STATUS
+    // ==========================================
 
     isActive: {
       type: Boolean,
