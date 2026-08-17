@@ -1,3 +1,30 @@
+const multer = require("multer");
+
+const storage = multer.memoryStorage();
+
+const uploadProfilePicture = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype === "image/jpeg" ||
+      file.mimetype === "image/png" ||
+      file.mimetype === "image/webp"
+    ) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          "Only JPG, PNG and WEBP images are allowed"
+        )
+      );
+    }
+  },
+});
+
+
 const VALID_CATEGORIES = [
   "Maintenance",
   "Security",
@@ -168,13 +195,48 @@ req.body.visitDate = parsedDate;
 
 
 const validateProfileUpdate = (req, res, next) => {
-  let { name, phone } = req.body;
+  let {
+    name,
+    phone,
+    vehicleRegistration,
+    emergencyContactName,
+    emergencyContactRelationship,
+    familyDetails,
+  } = req.body;
 
   name =
-    typeof name === "string" ? name.trim() : "";
+    typeof name === "string"
+      ? name.trim()
+      : "";
 
   phone =
-    typeof phone === "string" ? phone.trim() : "";
+    typeof phone === "string"
+      ? phone.trim()
+      : "";
+
+  vehicleRegistration =
+    typeof vehicleRegistration === "string"
+      ? vehicleRegistration.trim()
+      : "";
+
+  emergencyContactName =
+    typeof emergencyContactName === "string"
+      ? emergencyContactName.trim()
+      : "";
+
+  emergencyContactRelationship =
+    typeof emergencyContactRelationship === "string"
+      ? emergencyContactRelationship.trim()
+      : "";
+
+  familyDetails =
+    typeof familyDetails === "string"
+      ? familyDetails.trim()
+      : "";
+
+  // ==========================================
+  // REQUIRED PERSONAL INFORMATION
+  // ==========================================
 
   if (!name || !phone) {
     return res.status(400).json({
@@ -182,6 +244,10 @@ const validateProfileUpdate = (req, res, next) => {
       message: "Name and phone are required",
     });
   }
+
+  // ==========================================
+  // NAME
+  // ==========================================
 
   if (name.length < 3 || name.length > 50) {
     return res.status(400).json({
@@ -197,6 +263,10 @@ const validateProfileUpdate = (req, res, next) => {
     });
   }
 
+  // ==========================================
+  // PHONE
+  // ==========================================
+
   if (!/^\d{10}$/.test(phone)) {
     return res.status(400).json({
       success: false,
@@ -204,8 +274,78 @@ const validateProfileUpdate = (req, res, next) => {
     });
   }
 
+  // ==========================================
+  // VEHICLE
+  // ==========================================
+
+  if (vehicleRegistration.length > 30) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Vehicle registration must not exceed 30 characters",
+    });
+  }
+
+  // ==========================================
+  // EMERGENCY CONTACT NAME
+  // ==========================================
+
+  if (emergencyContactName) {
+    if (
+      emergencyContactName.length < 3 ||
+      emergencyContactName.length > 50
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Emergency contact name must be between 3 and 50 characters",
+      });
+    }
+
+    if (!/^[a-zA-Z\s.'-]+$/.test(emergencyContactName)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Emergency contact name contains invalid characters",
+      });
+    }
+  }
+
+  // ==========================================
+  // EMERGENCY RELATIONSHIP
+  // ==========================================
+
+  if (emergencyContactRelationship.length > 50) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Emergency contact relationship must not exceed 50 characters",
+    });
+  }
+
+  // ==========================================
+  // FAMILY DETAILS
+  // ==========================================
+
+  if (familyDetails.length > 500) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Family details must not exceed 500 characters",
+    });
+  }
+
+  // ==========================================
+  // CLEAN DATA
+  // ==========================================
+
   req.body.name = name;
   req.body.phone = phone;
+  req.body.vehicleRegistration = vehicleRegistration;
+  req.body.emergencyContactName = emergencyContactName;
+  req.body.emergencyContactRelationship =
+    emergencyContactRelationship;
+  req.body.familyDetails = familyDetails;
 
   next();
 };
@@ -385,4 +525,5 @@ module.exports = {
   validateProfileUpdate,
   validateBooking,
   validatePollVote,
+  uploadProfilePicture,
 };
