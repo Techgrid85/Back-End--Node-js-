@@ -43,12 +43,38 @@ const visitorSchema = new mongoose.Schema(
       match: /^\d{10}$/,
     },
 
+    visitorType: {
+      type: String,
+      enum: ["Guest", "Delivery", "Cab", "Vendor"],
+      default: "Guest",
+      required: true,
+    },
+
+    vehicleNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: "",
+    },
+
     purpose: {
       type: String,
       required: true,
       trim: true,
       minlength: 3,
       maxlength: 200,
+    },
+
+    // ==========================================
+    // DIGITAL GATE PASS
+    // ==========================================
+
+    gateKey: {
+      type: String,
+      unique: true,
+      sparse: true,
+      uppercase: true,
+      trim: true,
     },
 
     // ==========================================
