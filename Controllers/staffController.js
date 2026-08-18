@@ -288,14 +288,81 @@ const updateStaffProfile = async (req, res) => {
       });
     }
 
-    const { name, phone } = req.body;
+    const { name, email, phone } = req.body;
 
+    // ================================
+    // NAME
+    // ================================
     if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({
+          success: false,
+          field: "name",
+          message: "Name is required",
+        });
+      }
+
+      if (name.trim().length < 3) {
+        return res.status(400).json({
+          success: false,
+          field: "name",
+          message: "Name must be at least 3 characters",
+        });
+      }
+
       staff.name = name.trim();
     }
 
+    // ================================
+    // EMAIL
+    // ================================
+    if (email !== undefined) {
+      if (
+        typeof email !== "string" ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+      ) {
+        return res.status(400).json({
+          success: false,
+          field: "email",
+          message: "Please enter a valid email address",
+        });
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+
+      if (normalizedEmail !== staff.email) {
+        const existingEmail = await Auth.findOne({
+          email: normalizedEmail,
+          _id: { $ne: staff._id },
+        });
+
+        if (existingEmail) {
+          return res.status(409).json({
+            success: false,
+            field: "email",
+            message: "This email is already in use",
+          });
+        }
+
+        staff.email = normalizedEmail;
+      }
+    }
+
+    // ================================
+    // PHONE
+    // ================================
     if (phone !== undefined) {
-      staff.phone = phone.trim();
+      const cleanPhone = phone.trim();
+
+      if (!/^\d{10}$/.test(cleanPhone)) {
+        return res.status(400).json({
+          success: false,
+          field: "phone",
+          message: "Phone number must be exactly 10 digits",
+        });
+      }
+
+      staff.phone = cleanPhone;
     }
 
     await staff.save();
@@ -312,9 +379,28 @@ const updateStaffProfile = async (req, res) => {
   } catch (error) {
     console.error("Update Staff Profile Error:", error);
 
+    if (error.name === "ValidationError") {
+      const firstField = Object.keys(error.errors)[0];
+
+      return res.status(400).json({
+        success: false,
+        field: firstField,
+        message: error.errors[firstField].message,
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        field: "email",
+        message: "This email is already in use",
+      });
+    }
+
     return res.status(500).json({
       success: false,
-      message: "Failed to update staff profile",
+      message:
+        error.message || "Failed to update staff profile",
     });
   }
 };
