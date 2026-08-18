@@ -43,6 +43,7 @@ residentroutes.put(
 
 residentroutes.post(
   "/complaints",
+  residentMiddleware.uploadComplaintPhoto.single("photo"),
   residentMiddleware.validateComplaint,
   residentController.createComplaint
 );
