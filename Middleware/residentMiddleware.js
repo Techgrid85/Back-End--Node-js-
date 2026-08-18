@@ -26,11 +26,18 @@ const uploadProfilePicture = multer({
 
 
 const VALID_CATEGORIES = [
-  "Maintenance",
-  "Security",
+  "Plumbing",
+  "Electrical",
+  "Elevator",
+  "HVAC",
+  "Carpentry",
   "Cleanliness",
-  "Noise",
+  "Security",
   "Parking",
+  "Noise",
+  "Common Area",
+  "Water Supply",
+  "Gas",
   "Other",
 ];
 
