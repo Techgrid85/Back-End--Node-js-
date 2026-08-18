@@ -106,6 +106,12 @@ guardroutes.put(
   "/profile",
   guardController.updateGuardProfile
 );
+guardroutes.put(
+  "/profile/picture",
+  guardMiddleware.profilePictureUpload.single("profilePic"),
+  guardController.updateGuardProfilePicture
+);
+
 guardroutes.get(
   "/delivery-alerts",
   guardController.getDeliveryAlerts
