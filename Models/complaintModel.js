@@ -29,18 +29,25 @@ const complaintSchema = new mongoose.Schema(
       maxlength: 1000,
     },
 
-    category: {
-      type: String,
-      required: true,
-      enum: [
-        "Maintenance",
-        "Security",
-        "Cleanliness",
-        "Noise",
-        "Parking",
-        "Other",
-      ],
-    },
+   category: {
+  type: String,
+  required: true,
+  enum: [
+    "Plumbing",
+    "Electrical",
+    "Elevator",
+    "HVAC",
+    "Carpentry",
+    "Cleanliness",
+    "Security",
+    "Parking",
+    "Noise",
+    "Common Area",
+    "Water Supply",
+    "Gas",
+    "Other",
+  ],
+},
 
     status: {
       type: String,
@@ -60,9 +67,10 @@ const complaintSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ==========================================
-    // BILLING
-    // ==========================================
+    photo: {
+  type: String,
+  default: "",
+},
 
     billGenerated: {
       type: Boolean,
@@ -75,6 +83,7 @@ const complaintSchema = new mongoose.Schema(
       default: null,
     },
   },
+  
   {
     timestamps: true,
   }
