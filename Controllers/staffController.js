@@ -1,6 +1,6 @@
 const Complaint = require("../Models/complaintModel");
 const Auth = require("../Models/authModel");
-
+const cloudinary = require("../config/cloudinary.js");
 
 
 const getStaffDashboard = async (req, res) => {
@@ -246,9 +246,10 @@ const getComplaintHistory = async (req, res) => {
 
 const getStaffProfile = async (req, res) => {
   try {
-    const staff = await Auth.findById(req.user.id).select(
-      "-password"
-    );
+    const staff = await Auth.findOne({
+      _id: req.user.id,
+      role: "staff",
+    }).select("-password");
 
     if (!staff) {
       return res.status(404).json({
@@ -272,8 +273,6 @@ const getStaffProfile = async (req, res) => {
 };
 
 
-
-
 const updateStaffProfile = async (req, res) => {
   try {
     const staff = await Auth.findOne({
@@ -288,13 +287,20 @@ const updateStaffProfile = async (req, res) => {
       });
     }
 
-    const { name, email, phone } = req.body;
+    const {
+      name,
+      email,
+      phone,
+    } = req.body;
 
-    // ================================
+    // ==========================================
     // NAME
-    // ================================
+    // ==========================================
     if (name !== undefined) {
-      if (typeof name !== "string" || !name.trim()) {
+      if (
+        typeof name !== "string" ||
+        !name.trim()
+      ) {
         return res.status(400).json({
           success: false,
           field: "name",
@@ -310,25 +316,53 @@ const updateStaffProfile = async (req, res) => {
         });
       }
 
+      if (name.trim().length > 50) {
+        return res.status(400).json({
+          success: false,
+          field: "name",
+          message: "Name cannot exceed 50 characters",
+        });
+      }
+
+      if (!/^[a-zA-Z\s.'-]+$/.test(name.trim())) {
+        return res.status(400).json({
+          success: false,
+          field: "name",
+          message: "Name contains invalid characters",
+        });
+      }
+
       staff.name = name.trim();
     }
 
-    // ================================
+    // ==========================================
     // EMAIL
-    // ================================
+    // ==========================================
     if (email !== undefined) {
       if (
         typeof email !== "string" ||
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+        !email.trim()
       ) {
+        return res.status(400).json({
+          success: false,
+          field: "email",
+          message: "Email is required",
+        });
+      }
+
+      const normalizedEmail =
+        email.trim().toLowerCase();
+
+      const emailRegex =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!emailRegex.test(normalizedEmail)) {
         return res.status(400).json({
           success: false,
           field: "email",
           message: "Please enter a valid email address",
         });
       }
-
-      const normalizedEmail = email.trim().toLowerCase();
 
       if (normalizedEmail !== staff.email) {
         const existingEmail = await Auth.findOne({
@@ -348,21 +382,23 @@ const updateStaffProfile = async (req, res) => {
       }
     }
 
-    // ================================
+    // ==========================================
     // PHONE
-    // ================================
+    // ==========================================
     if (phone !== undefined) {
-      const cleanPhone = phone.trim();
-
-      if (!/^\d{10}$/.test(cleanPhone)) {
+      if (
+        typeof phone !== "string" ||
+        !/^\d{10}$/.test(phone.trim())
+      ) {
         return res.status(400).json({
           success: false,
           field: "phone",
-          message: "Phone number must be exactly 10 digits",
+          message:
+            "Phone number must be exactly 10 digits",
         });
       }
 
-      staff.phone = cleanPhone;
+      staff.phone = phone.trim();
     }
 
     await staff.save();
@@ -377,15 +413,20 @@ const updateStaffProfile = async (req, res) => {
       data: updatedStaff,
     });
   } catch (error) {
-    console.error("Update Staff Profile Error:", error);
+    console.error(
+      "Update Staff Profile Error:",
+      error
+    );
 
     if (error.name === "ValidationError") {
-      const firstField = Object.keys(error.errors)[0];
+      const firstField =
+        Object.keys(error.errors)[0];
 
       return res.status(400).json({
         success: false,
         field: firstField,
-        message: error.errors[firstField].message,
+        message:
+          error.errors[firstField].message,
       });
     }
 
@@ -400,7 +441,92 @@ const updateStaffProfile = async (req, res) => {
     return res.status(500).json({
       success: false,
       message:
-        error.message || "Failed to update staff profile",
+        error.message ||
+        "Failed to update staff profile",
+    });
+  }
+};
+const updateStaffProfilePicture = async (
+  req,
+  res
+) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please select a profile picture",
+      });
+    }
+
+    const staff = await Auth.findOne({
+      _id: req.user.id,
+      role: "staff",
+    });
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: "Staff member not found",
+      });
+    }
+
+    // ==========================================
+    // UPLOAD TO CLOUDINARY
+    // ==========================================
+    const uploadResult = await new Promise(
+      (resolve, reject) => {
+        const uploadStream =
+          cloudinary.uploader.upload_stream(
+            {
+              folder: "smart-society/profiles",
+              resource_type: "image",
+            },
+            (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          );
+
+        uploadStream.end(req.file.buffer);
+      }
+    );
+
+    // ==========================================
+    // SAVE CLOUDINARY URL
+    // ==========================================
+    staff.profilePic =
+      uploadResult.secure_url;
+
+    await staff.save();
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Profile picture updated successfully",
+      data: {
+        _id: staff._id,
+        name: staff.name,
+        email: staff.email,
+        phone: staff.phone,
+        flatNo: staff.flatNo,
+        role: staff.role,
+        profilePic: staff.profilePic,
+        isActive: staff.isActive,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Update Staff Profile Picture Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to update profile picture",
     });
   }
 };
@@ -411,6 +537,7 @@ module.exports = {
   updateComplaintStatus,
   getCompletedComplaints,
   getComplaintHistory,
-    getStaffProfile,
-    updateStaffProfile,
+  getStaffProfile,
+  updateStaffProfile,
+  updateStaffProfilePicture,
 };
