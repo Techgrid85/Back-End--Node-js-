@@ -1,5 +1,6 @@
 const Visitor = require("../Models/visitorModel.js");
 const Auth = require("../Models/authModel.js");
+const cloudinary = require("../config/cloudinary.js");
 const verifyGatePass = async (req, res) => {
   try {
     const { gateKey } = req.params;
@@ -726,6 +727,75 @@ const getDeliveryAlerts = async (req, res) => {
   }
 };
 
+const updateGuardProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please select a profile picture",
+      });
+    }
+
+    const guard = await Auth.findById(req.user.id);
+
+    if (!guard) {
+      return res.status(404).json({
+        success: false,
+        message: "Guard profile not found",
+      });
+    }
+
+    // Upload image buffer to Cloudinary
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "smart-society/profiles",
+          resource_type: "image",
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      );
+
+      uploadStream.end(req.file.buffer);
+    });
+
+    // Save Cloudinary URL
+    guard.profilePic = uploadResult.secure_url;
+
+    await guard.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile picture updated successfully",
+      data: {
+        _id: guard._id,
+        name: guard.name,
+        email: guard.email,
+        phone: guard.phone,
+        flatNo: guard.flatNo,
+        role: guard.role,
+        profilePic: guard.profilePic,
+        isActive: guard.isActive,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Update Guard Profile Picture Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update profile picture",
+    });
+  }
+};
+
 
 module.exports = {
   verifyGatePass,
@@ -745,4 +815,5 @@ module.exports = {
   getGuardProfile,
   updateGuardProfile,
   getDeliveryAlerts,
+  updateGuardProfilePicture,
 };
