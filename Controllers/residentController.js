@@ -327,12 +327,48 @@ const createComplaint = async (req, res) => {
       category,
     } = req.body;
 
+    // ==========================================
+    // UPLOAD COMPLAINT PHOTO TO CLOUDINARY
+    // ==========================================
+
+    let photoUrl = "";
+
+    if (req.file) {
+      const uploadResult = await new Promise(
+        (resolve, reject) => {
+          const stream =
+            cloudinary.uploader.upload_stream(
+              {
+                folder: "smartsociety/complaints",
+                resource_type: "image",
+              },
+              (error, result) => {
+                if (error) {
+                  reject(error);
+                } else {
+                  resolve(result);
+                }
+              }
+            );
+
+          stream.end(req.file.buffer);
+        }
+      );
+
+      photoUrl = uploadResult.secure_url;
+    }
+
+    // ==========================================
+    // CREATE COMPLAINT
+    // ==========================================
+
     const complaint = await Complaint.create({
       resident: resident._id,
       flatNo: resident.flatNo,
       subject,
       description,
       category,
+      photo: photoUrl,
     });
 
     return res.status(201).json({
@@ -350,7 +386,6 @@ const createComplaint = async (req, res) => {
     });
   }
 };
-
 const getMyComplaints = async (req, res) => {
   try {
     const complaints = await Complaint.find({
