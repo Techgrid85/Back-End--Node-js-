@@ -12,6 +12,22 @@ const visitorSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Present when this pass began as a request from a registered visitor.
+    // It lets the visitor see only their own requests and approved passes.
+    visitorAccount: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Auth",
+      default: null,
+      index: true,
+    },
+
+    requestSource: {
+      type: String,
+      enum: ["resident", "visitor", "guard"],
+      default: "resident",
+      required: true,
+    },
+
     flatNo: {
       type: String,
       required: true,
@@ -121,6 +137,7 @@ const visitorSchema = new mongoose.Schema(
         "Approved",
         "Rejected",
         "Completed",
+        "Revoked",
       ],
       default: "Pending",
     },
@@ -164,6 +181,22 @@ const visitorSchema = new mongoose.Schema(
     isWalkIn: {
       type: Boolean,
       default: false,
+    },
+
+    requestedAt: {
+      type: Date,
+      default: Date.now,
+    },
+
+    respondedAt: {
+      type: Date,
+      default: null,
+    },
+
+    respondedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Auth",
+      default: null,
     },
   },
   {

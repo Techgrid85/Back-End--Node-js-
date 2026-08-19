@@ -85,6 +85,10 @@ adminroutes.patch(
   adminController.toggleResidentStatus
 );
 
+adminroutes.get("/visitors", adminController.getAllVisitorAccounts);
+adminroutes.get("/settings", adminController.getVisitorSettings);
+adminroutes.put("/settings", adminController.updateVisitorSettings);
+
 
 
 

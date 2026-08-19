@@ -1053,6 +1053,98 @@ const voteOnPoll = async (req, res) => {
   }
 };
 
+const getVisitorSettings = async (req, res) => {
+  try {
+    const resident = await Auth.findOne({ _id: req.user.id, role: "resident" }).select(
+      "visitorRequestsEnabled visitorAvailabilityMode visitorUnavailableUntil visitingHours"
+    );
+    if (!resident) return res.status(404).json({ success: false, message: "Resident not found" });
+    return res.json({ success: true, data: resident });
+  } catch (error) {
+    console.error("Get Visitor Settings Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch visitor settings" });
+  }
+};
+
+const updateVisitorSettings = async (req, res) => {
+  try {
+    const update = {
+      visitorRequestsEnabled: req.body.visitorRequestsEnabled,
+      visitorAvailabilityMode: req.body.visitorAvailabilityMode,
+      visitorUnavailableUntil: req.body.visitorUnavailableUntil,
+    };
+    if (req.body.visitingHours) update.visitingHours = req.body.visitingHours;
+
+    const resident = await Auth.findOneAndUpdate(
+      { _id: req.user.id, role: "resident" },
+      update,
+      { new: true, runValidators: true }
+    ).select("visitorRequestsEnabled visitorAvailabilityMode visitorUnavailableUntil visitingHours");
+    if (!resident) return res.status(404).json({ success: false, message: "Resident not found" });
+    return res.json({ success: true, message: "Visitor request settings updated", data: resident });
+  } catch (error) {
+    console.error("Update Visitor Settings Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to update visitor settings" });
+  }
+};
+
+const getIncomingVisitorRequests = async (req, res) => {
+  try {
+    const requests = await Visitor.find({ resident: req.user.id, requestSource: "visitor" })
+      .populate("visitorAccount", "name email phone")
+      .sort({ createdAt: -1 });
+    return res.json({ success: true, count: requests.length, data: requests });
+  } catch (error) {
+    console.error("Get Incoming Visitor Requests Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch visitor requests" });
+  }
+};
+
+const respondToVisitorRequest = async (req, res) => {
+  try {
+    const approved = req.body.action === "approve";
+    if (!approved && req.body.action !== "reject") {
+      return res.status(400).json({ success: false, field: "action", message: "Action must be approve or reject" });
+    }
+    const request = await Visitor.findOne({
+      _id: req.params.id,
+      resident: req.user.id,
+      requestSource: "visitor",
+      status: "Pending",
+    });
+    if (!request) return res.status(404).json({ success: false, message: "Pending visitor request not found" });
+
+    request.status = approved ? "Approved" : "Rejected";
+    request.respondedAt = new Date();
+    request.respondedBy = req.user.id;
+    await request.save();
+
+    return res.json({
+      success: true,
+      message: approved ? "Visitor request approved and pass is ready" : "Visitor request rejected",
+      data: request,
+    });
+  } catch (error) {
+    console.error("Respond To Visitor Request Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to respond to visitor request" });
+  }
+};
+
+const revokeVisitorPass = async (req, res) => {
+  try {
+    const pass = await Visitor.findOne({ _id: req.params.id, resident: req.user.id, status: "Approved", gateStatus: "Not Entered" });
+    if (!pass) return res.status(404).json({ success: false, message: "An unentered approved visitor pass was not found" });
+    pass.status = "Revoked";
+    pass.respondedAt = new Date();
+    pass.respondedBy = req.user.id;
+    await pass.save();
+    return res.json({ success: true, message: "Visitor pass revoked", data: pass });
+  } catch (error) {
+    console.error("Revoke Visitor Pass Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to revoke visitor pass" });
+  }
+};
+
 module.exports = {
   getResidentDashboard,
 
@@ -1067,6 +1159,11 @@ module.exports = {
   createVisitor,
   getMyVisitors,
   getVisitorById,
+  getVisitorSettings,
+  updateVisitorSettings,
+  getIncomingVisitorRequests,
+  respondToVisitorRequest,
+  revokeVisitorPass,
 
   getMyMaintenance,
   getMaintenanceById,

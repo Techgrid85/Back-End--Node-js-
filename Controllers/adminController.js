@@ -7,6 +7,7 @@ const Booking = require("../Models/bookingModel.js");
 const Notice = require("../Models/noticeModel.js");
 const Poll = require("../Models/pollModel.js");
 const PollVote = require("../Models/pollVoteModel.js");
+const Settings = require("../Models/settingsModel.js");
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
 
@@ -3447,6 +3448,60 @@ const updateAdminProfile = async (req, res) => {
   }
 };
 
+const getVisitorSettings = async (req, res) => {
+  try {
+    const settings = await Settings.findOneAndUpdate(
+      { key: "global" },
+      { $setOnInsert: { key: "global" } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    return res.json({ success: true, data: settings });
+  } catch (error) {
+    console.error("Get Admin Visitor Settings Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch website settings" });
+  }
+};
+
+const updateVisitorSettings = async (req, res) => {
+  try {
+    const { visitorRegistrationEnabled, visitorRequestsEnabled, publicMapUrl } = req.body;
+    const update = {};
+    if (visitorRegistrationEnabled !== undefined) {
+      if (typeof visitorRegistrationEnabled !== "boolean") return res.status(400).json({ success: false, field: "visitorRegistrationEnabled", message: "Registration setting must be true or false" });
+      update.visitorRegistrationEnabled = visitorRegistrationEnabled;
+    }
+    if (visitorRequestsEnabled !== undefined) {
+      if (typeof visitorRequestsEnabled !== "boolean") return res.status(400).json({ success: false, field: "visitorRequestsEnabled", message: "Visitor request setting must be true or false" });
+      update.visitorRequestsEnabled = visitorRequestsEnabled;
+    }
+    if (publicMapUrl !== undefined) {
+      if (typeof publicMapUrl !== "string" || publicMapUrl.trim().length > 1000) return res.status(400).json({ success: false, field: "publicMapUrl", message: "Provide a valid map URL" });
+      update.publicMapUrl = publicMapUrl.trim();
+    }
+    if (!Object.keys(update).length) return res.status(400).json({ success: false, message: "No supported settings were provided" });
+
+    const settings = await Settings.findOneAndUpdate(
+      { key: "global" },
+      { $set: update, $setOnInsert: { key: "global" } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    return res.json({ success: true, message: "Website settings updated", data: settings });
+  } catch (error) {
+    console.error("Update Admin Visitor Settings Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to update website settings" });
+  }
+};
+
+const getAllVisitorAccounts = async (req, res) => {
+  try {
+    const visitors = await Auth.find({ role: "visitor" }).select("-password").sort({ createdAt: -1 });
+    return res.json({ success: true, count: visitors.length, data: visitors });
+  } catch (error) {
+    console.error("Get Visitor Accounts Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch visitor accounts" });
+  }
+};
+
 module.exports = {
     getAdminDashboard,
 
@@ -3519,5 +3574,9 @@ module.exports = {
 
     getAuditLogs,
     getAdminProfile,
-    updateAdminProfile
+    updateAdminProfile,
+
+    getVisitorSettings,
+    updateVisitorSettings,
+    getAllVisitorAccounts
 };

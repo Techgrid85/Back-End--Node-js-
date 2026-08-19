@@ -526,6 +526,39 @@ const validatePollVote = (req, res, next) => {
 
   next();
 };
+
+const validateVisitorSettings = (req, res, next) => {
+  const { visitorRequestsEnabled, visitorAvailabilityMode, visitorUnavailableUntil, visitingHours } = req.body;
+  const allowedModes = ["available", "unavailable", "scheduled"];
+
+  if (typeof visitorRequestsEnabled !== "boolean") {
+    return res.status(400).json({ success: false, field: "visitorRequestsEnabled", message: "Visitor request preference must be true or false" });
+  }
+  if (!allowedModes.includes(visitorAvailabilityMode)) {
+    return res.status(400).json({ success: false, field: "visitorAvailabilityMode", message: "Select a valid availability mode" });
+  }
+
+  if (visitorAvailabilityMode === "unavailable" && visitorUnavailableUntil) {
+    const until = new Date(visitorUnavailableUntil);
+    if (Number.isNaN(until.getTime()) || until <= new Date()) {
+      return res.status(400).json({ success: false, field: "visitorUnavailableUntil", message: "Unavailable-until time must be in the future" });
+    }
+    req.body.visitorUnavailableUntil = until;
+  } else {
+    req.body.visitorUnavailableUntil = null;
+  }
+
+  if (visitorAvailabilityMode === "scheduled") {
+    const start = typeof visitingHours?.start === "string" ? visitingHours.start : "";
+    const end = typeof visitingHours?.end === "string" ? visitingHours.end : "";
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(start) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(end) || start >= end) {
+      return res.status(400).json({ success: false, field: "visitingHours", message: "Provide valid visiting hours with an end time after the start time" });
+    }
+    req.body.visitingHours = { start, end };
+  }
+
+  next();
+};
 const uploadComplaintPhoto = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -554,6 +587,7 @@ module.exports = {
   validateProfileUpdate,
   validateBooking,
   validatePollVote,
+  validateVisitorSettings,
   uploadProfilePicture,
   uploadComplaintPhoto,
 };

@@ -76,6 +76,13 @@ const approveVisitorPass = async (req, res) => {
       });
     }
 
+    if (visitor.requestSource === "visitor") {
+      return res.status(403).json({
+        success: false,
+        message: "Visitor-initiated requests must be approved by the resident",
+      });
+    }
+
     if (visitor.status === "Approved") {
       return res.status(400).json({
         success: false,

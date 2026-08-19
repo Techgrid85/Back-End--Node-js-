@@ -25,7 +25,7 @@ const authSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["admin", "resident", "guard", "staff"],
+      enum: ["admin", "resident", "guard", "staff", "visitor"],
       default: "resident",
     },
 
@@ -90,6 +90,29 @@ const authSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+    },
+
+    // Residents control whether authenticated visitors may send them
+    // visit requests. These fields are ignored for non-resident accounts.
+    visitorRequestsEnabled: {
+      type: Boolean,
+      default: true,
+    },
+
+    visitorAvailabilityMode: {
+      type: String,
+      enum: ["available", "unavailable", "scheduled"],
+      default: "available",
+    },
+
+    visitorUnavailableUntil: {
+      type: Date,
+      default: null,
+    },
+
+    visitingHours: {
+      start: { type: String, default: "09:00" },
+      end: { type: String, default: "20:00" },
     },
 
     // ==========================================

@@ -40,6 +40,12 @@ residentroutes.put(
   residentController.updateResidentProfilePicture
 );
 
+residentroutes.get("/visitor-settings", residentController.getVisitorSettings);
+residentroutes.put("/visitor-settings", residentMiddleware.validateVisitorSettings, residentController.updateVisitorSettings);
+residentroutes.get("/visitor-requests", residentController.getIncomingVisitorRequests);
+residentroutes.patch("/visitor-requests/:id", residentController.respondToVisitorRequest);
+residentroutes.patch("/visitor-passes/:id/revoke", residentController.revokeVisitorPass);
+
 
 residentroutes.post(
   "/complaints",
