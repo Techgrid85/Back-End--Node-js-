@@ -8,6 +8,7 @@ const Booking = require("../Models/bookingModel.js");
 const Poll = require("../Models/pollModel.js");
 const PollVote = require("../Models/pollVoteModel.js");
 const cloudinary = require("../config/cloudinary.js");
+const { notify, idsForRoles } = require("../Services/notificationService.js");
 
 const getResidentDashboard = async (req, res) => {
   try {
@@ -371,6 +372,8 @@ const createComplaint = async (req, res) => {
       photo: photoUrl,
     });
 
+    await notify({ recipientIds: [], actor: resident._id, title: "New complaint submitted", message: `${resident.name} submitted “${complaint.subject}” for Flat ${resident.flatNo}.`, type: "complaint", sourcePanel: "resident", entityType: "Complaint", entityId: complaint._id });
+
     return res.status(201).json({
       success: true,
       message: "Complaint submitted successfully",
@@ -513,6 +516,8 @@ const createVisitor = async (req, res) => {
 
       isWalkIn: false,
     });
+
+    await notify({ recipientIds: await idsForRoles(["guard"]), actor: resident._id, title: "New visitor pass", message: `${resident.name} created a pass for ${visitor.visitorName}, Flat ${resident.flatNo}.`, type: "visitor", sourcePanel: "resident", entityType: "Visitor", entityId: visitor._id });
 
     return res.status(201).json({
       success: true,
@@ -830,6 +835,8 @@ const createBooking = async (req, res) => {
       status: "Pending",
     });
 
+    await notify({ recipientIds: [], actor: resident._id, title: "New facility booking request", message: `${resident.name} requested ${booking.facility} for Flat ${resident.flatNo}.`, type: "booking", sourcePanel: "resident", entityType: "Booking", entityId: booking._id });
+
     return res.status(201).json({
       success: true,
       message: "Facility booking request submitted successfully",
@@ -1112,12 +1119,15 @@ const respondToVisitorRequest = async (req, res) => {
       requestSource: "visitor",
       status: "Pending",
     });
+
     if (!request) return res.status(404).json({ success: false, message: "Pending visitor request not found" });
 
     request.status = approved ? "Approved" : "Rejected";
     request.respondedAt = new Date();
     request.respondedBy = req.user.id;
     await request.save();
+
+    await notify({ recipientIds: [request.visitorAccount, ...(approved ? await idsForRoles(["guard"]) : [])], actor: req.user.id, title: `Visitor request ${approved ? "approved" : "rejected"}`, message: `Your visit request to Flat ${request.flatNo} was ${approved ? "approved. Your gate pass is ready." : "rejected."}`, type: "visitor", sourcePanel: "resident", entityType: "Visitor", entityId: request._id });
 
     return res.json({
       success: true,
@@ -1138,6 +1148,7 @@ const revokeVisitorPass = async (req, res) => {
     pass.respondedAt = new Date();
     pass.respondedBy = req.user.id;
     await pass.save();
+    await notify({ recipientIds: [pass.visitorAccount, ...(await idsForRoles(["guard"]))], actor: req.user.id, title: "Visitor pass revoked", message: `The visitor pass for Flat ${pass.flatNo} has been revoked.`, type: "visitor", sourcePanel: "resident", entityType: "Visitor", entityId: pass._id });
     return res.json({ success: true, message: "Visitor pass revoked", data: pass });
   } catch (error) {
     console.error("Revoke Visitor Pass Error:", error);

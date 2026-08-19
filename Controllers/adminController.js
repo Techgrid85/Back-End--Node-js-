@@ -8,6 +8,7 @@ const Notice = require("../Models/noticeModel.js");
 const Poll = require("../Models/pollModel.js");
 const PollVote = require("../Models/pollVoteModel.js");
 const Settings = require("../Models/settingsModel.js");
+const { notify, idsForRoles } = require("../Services/notificationService.js");
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
 
@@ -255,6 +256,8 @@ const assignStaffToComplaint = async (req, res) => {
     }
 
     await complaint.save();
+
+    await notify({ recipientIds: [staff._id, complaint.resident], actor: req.user.id, title: "Complaint assigned", message: `Complaint “${complaint.subject}” has been assigned to ${staff.name}.`, type: "complaint", sourcePanel: "admin", entityType: "Complaint", entityId: complaint._id });
 
     const updatedComplaint = await Complaint.findById(
       complaint._id
@@ -1108,6 +1111,8 @@ const createMaintenance = async (req, res) => {
           complaint: null,
       });
 
+    await notify({ recipientIds: [residentData._id], actor: req.user.id, title: "New maintenance bill", message: `A maintenance bill of ${maintenance.amount} has been created for ${maintenance.month}.`, type: "maintenance", sourcePanel: "admin", entityType: "Maintenance", entityId: maintenance._id });
+
     const createdMaintenance =
       await Maintenance.findById(
         maintenance._id
@@ -1248,6 +1253,8 @@ const updateMaintenance = async (req, res) => {
     }
 
     await maintenance.save();
+
+    await notify({ recipientIds: [maintenance.resident], actor: req.user.id, title: "Maintenance bill paid", message: `Your maintenance bill for ${maintenance.month} has been marked as paid.`, type: "maintenance", sourcePanel: "admin", entityType: "Maintenance", entityId: maintenance._id });
 
     const updatedMaintenance =
       await Maintenance.findById(
@@ -1838,6 +1845,8 @@ const updateBookingStatus = async (req, res) => {
 
     await booking.save();
 
+    await notify({ recipientIds: [booking.resident], actor: req.user.id, title: "Booking status updated", message: `Your ${booking.facility} booking is now ${status}.`, type: "booking", sourcePanel: "admin", entityType: "Booking", entityId: booking._id });
+
     const updatedBooking = await Booking.findById(
       booking._id
     ).populate(
@@ -1935,6 +1944,8 @@ const createNotice = async (req, res) => {
       priority: priority || "Normal",
       createdBy: req.user.id,
     });
+
+    await notify({ recipientIds: await idsForRoles(["resident", "guard", "staff", "visitor"]), actor: req.user.id, title: `New notice: ${notice.title}`, message: notice.description, type: "notice", sourcePanel: "admin", entityType: "Notice", entityId: notice._id });
 
     const populatedNotice = await Notice.findById(notice._id)
       .populate("createdBy", "name email");
@@ -2169,6 +2180,8 @@ const createPoll = async (req, res) => {
       createdBy: req.user.id,
       status: status || "Active",
     });
+
+    await notify({ recipientIds: await idsForRoles(["resident"]), actor: req.user.id, title: "New community poll", message: poll.question, type: "poll", sourcePanel: "admin", entityType: "Poll", entityId: poll._id });
 
     const createdPoll = await Poll.findById(poll._id)
       .populate("createdBy", "name email");
@@ -3223,6 +3236,8 @@ const generateComplaintBill = async (req, res) => {
           source: "Complaint",
           complaint: complaint._id,
       });
+
+    await notify({ recipientIds: [complaint.resident._id], actor: req.user.id, title: "Complaint bill generated", message: `A bill of ${maintenance.amount} was generated for complaint “${complaint.subject}”.`, type: "maintenance", sourcePanel: "admin", entityType: "Maintenance", entityId: maintenance._id });
 
     const createdBill =
       await Maintenance.findById(

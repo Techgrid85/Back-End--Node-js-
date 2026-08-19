@@ -1,6 +1,7 @@
 const Visitor = require("../Models/visitorModel.js");
 const Auth = require("../Models/authModel.js");
 const cloudinary = require("../config/cloudinary.js");
+const { notify } = require("../Services/notificationService.js");
 const verifyGatePass = async (req, res) => {
   try {
     const { gateKey } = req.params;
@@ -155,6 +156,7 @@ const createWalkInVisitor = async (req, res) => {
       entryGuard: req.user.id,
       isWalkIn: true,
     });
+    await notify({ recipientIds: [visitor.resident], actor: req.user.id, title: "Walk-in visitor entered", message: `${visitor.visitorName} has entered for Flat ${visitor.flatNo}.`, type: "visitor", sourcePanel: "guard", entityType: "Visitor", entityId: visitor._id });
 
     return res.status(201).json({
       success: true,
@@ -289,6 +291,7 @@ const markVisitorEntry = async (req, res) => {
     visitor.isOverstay = false;
 
     await visitor.save();
+    await notify({ recipientIds: [visitor.resident, visitor.visitorAccount], actor: req.user.id, title: "Visitor entered society", message: `${visitor.visitorName} has entered for Flat ${visitor.flatNo}.`, type: "visitor", sourcePanel: "guard", entityType: "Visitor", entityId: visitor._id });
 
     return res.status(200).json({
       success: true,
@@ -331,6 +334,7 @@ const markVisitorExit = async (req, res) => {
     visitor.status = "Completed";
 
     await visitor.save();
+    await notify({ recipientIds: [visitor.resident, visitor.visitorAccount], actor: req.user.id, title: "Visitor exited society", message: `${visitor.visitorName} has exited from Flat ${visitor.flatNo}.`, type: "visitor", sourcePanel: "guard", entityType: "Visitor", entityId: visitor._id });
 
     return res.status(200).json({
       success: true,

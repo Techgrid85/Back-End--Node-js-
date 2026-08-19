@@ -8,6 +8,7 @@ const residentroutes = require("./Routes/residentRouter.js");
 const guardroutes = require("./Routes/guardRouter.js");
 const staffRoutes = require("./Routes/staffRouter.js");
 const visitorRoutes = require("./Routes/visitorRoutes.js");
+const notificationRoutes = require("./Routes/notificationRoutes.js");
 dotenv.config();
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/resident", residentroutes);
 app.use("/guard", guardroutes);
 app.use("/staff", staffRoutes);
 app.use("/visitor", visitorRoutes);
+app.use("/notifications", notificationRoutes);
 
 app.get("/", (req, res) => {
   res.send("SmartSociety Backend is Running");

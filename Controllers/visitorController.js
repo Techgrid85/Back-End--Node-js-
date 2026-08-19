@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Auth = require("../Models/authModel.js");
 const Visitor = require("../Models/visitorModel.js");
 const Settings = require("../Models/settingsModel.js");
+const { notify } = require("../Services/notificationService.js");
 
 const getSettings = () =>
   Settings.findOneAndUpdate(
@@ -155,6 +156,11 @@ const createVisitRequest = async (req, res) => {
       visitEndTime: req.body.visitEndTime,
       status: "Pending",
       gateStatus: "Not Entered",
+    });
+
+    await notify({
+      recipientIds: [resident._id], actor: visitor._id, title: "New visitor request",
+      message: `${visitor.name} requested a visit to Flat ${resident.flatNo}.`, type: "visitor", sourcePanel: "visitor", entityType: "Visitor", entityId: request._id,
     });
 
     return res.status(201).json({ success: true, message: "Visit request sent to the resident", data: request });

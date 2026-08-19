@@ -1,6 +1,7 @@
 const Complaint = require("../Models/complaintModel");
 const Auth = require("../Models/authModel");
 const cloudinary = require("../config/cloudinary.js");
+const { notify } = require("../Services/notificationService.js");
 
 
 const getStaffDashboard = async (req, res) => {
@@ -159,6 +160,7 @@ const updateComplaintStatus = async (req, res) => {
     complaint.status = status;
 
     await complaint.save();
+    await notify({ recipientIds: [complaint.resident], actor: req.user.id, title: "Complaint status updated", message: `Your complaint “${complaint.subject}” is now ${status}.`, type: "complaint", sourcePanel: "staff", entityType: "Complaint", entityId: complaint._id });
 
     const updatedComplaint = await Complaint.findById(
       complaint._id
