@@ -7,6 +7,7 @@ const visitorRoutes = express.Router();
 
 // Public route: the controller checks the administrator's registration setting.
 visitorRoutes.post("/register", visitorMiddleware.validateRegistration, visitorController.registerVisitor);
+visitorRoutes.get("/public-settings", visitorController.getPublicSettings);
 
 visitorRoutes.use(Middleware.verifyToken, Middleware.authorizeRoles("visitor"));
 

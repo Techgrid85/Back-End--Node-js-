@@ -120,6 +120,22 @@ const getPublicMap = async (req, res) => {
   return res.json({ success: true, data: { publicMapUrl: settings.publicMapUrl || "" } });
 };
 
+const getPublicSettings = async (req, res) => {
+  try {
+    const settings = await getSettings();
+    return res.json({
+      success: true,
+      data: {
+        visitorRegistrationEnabled: settings.visitorRegistrationEnabled,
+        visitorRequestsEnabled: settings.visitorRequestsEnabled,
+      },
+    });
+  } catch (error) {
+    console.error("Get Public Visitor Settings Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to load visitor settings" });
+  }
+};
+
 const createVisitRequest = async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.body.residentId)) {
@@ -189,6 +205,7 @@ module.exports = {
   getProfile,
   updateProfile,
   deactivateProfile,
+  getPublicSettings,
   findResident,
   getPublicMap,
   createVisitRequest,
